@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "720451154201",
+    "project_id": "dailyserv-d65aa",
+    "storage_bucket": "dailyserv-d65aa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:720451154201:android:e28f8f65705729e5ffd588",
+        "android_client_info": {
+          "package_name": "com.example.dailyserv"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDpm5VyWRk_SNyBH0ECOMPOzfJVIZ55bOo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
