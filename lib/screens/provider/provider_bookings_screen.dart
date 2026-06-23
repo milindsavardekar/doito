@@ -6,6 +6,7 @@ import '../../services/firebase_services.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common_widgets.dart';
 import '../bookings/rate_customer_sheet.dart';
+import 'customer_ratings_sheet.dart';
 
 class ProviderBookingsScreen extends StatefulWidget {
   const ProviderBookingsScreen({super.key});
@@ -31,80 +32,93 @@ class _ProviderBookingsScreenState extends State<ProviderBookingsScreen>
     super.dispose();
   }
 
+  static const double _tabBarHeight = 48;
+
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    final headerHeight = statusBarHeight + kToolbarHeight + _tabBarHeight;
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: AppTheme.primary,
-        titleTextStyle: const TextStyle(
-            color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        titleTextStyle: AppTheme.appBarTitleStyle(color: Colors.white),
         title: const Text('Customer Bookings'),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Container(
-            color: AppTheme.primary,
-            child: TabBar(
-              controller: _tabCtrl,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white54,
-              indicatorColor: const Color(0xFF4DD9EC),
-              indicatorWeight: 3,
-              labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w700, fontSize: 14),
-              tabs: const [
-                Tab(text: 'New'),
-                Tab(text: 'Ongoing'),
-                Tab(text: 'Done'),
-              ],
-            ),
+          preferredSize: const Size.fromHeight(_tabBarHeight),
+          child: TabBar(
+            controller: _tabCtrl,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white54,
+            indicatorColor: const Color(0xFF4DD9EC),
+            indicatorWeight: 3,
+            labelStyle: const TextStyle(
+                fontWeight: FontWeight.w700, fontSize: 14),
+            tabs: const [
+              Tab(text: 'New'),
+              Tab(text: 'Ongoing'),
+              Tab(text: 'Done'),
+            ],
           ),
         ),
       ),
-      body: Container(
-        color: AppTheme.primary,
-        child: Container(
-          decoration: const BoxDecoration(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      body: Stack(
+        children: [
+          // One continuous gradient behind the status bar + title + tab
+          // bar — see bookings_list_screen.dart for why this replaced two
+          // separate stacked gradient boxes (hard seam between them).
+          Container(
+            height: headerHeight,
+            decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
           ),
-          child: StreamBuilder<List<Booking>>(
-            stream: _firestore.getProviderBookings(uid),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(
-                    child: CircularProgressIndicator(
-                        color: AppTheme.primary));
-              }
-              final all = snapshot.data!;
-              final newB = all
-                  .where((b) =>
-                      b.status == 'confirmed' || b.status == 'pending')
-                  .toList();
-              final ongoing =
-                  all.where((b) => b.status == 'in_progress').toList();
-              final done = all
-                  .where((b) =>
-                      b.status == 'completed' || b.status == 'cancelled')
-                  .toList();
+          Padding(
+            padding: EdgeInsets.only(top: headerHeight),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: StreamBuilder<List<Booking>>(
+                stream: _firestore.getProviderBookings(uid),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(
+                        child: CircularProgressIndicator(
+                            color: AppTheme.primary));
+                  }
+                  final all = snapshot.data!;
+                  final newB = all
+                      .where((b) =>
+                          b.status == 'confirmed' || b.status == 'pending')
+                      .toList();
+                  final ongoing =
+                      all.where((b) => b.status == 'in_progress').toList();
+                  final done = all
+                      .where((b) =>
+                          b.status == 'completed' || b.status == 'cancelled')
+                      .toList();
 
-              return TabBarView(
-                controller: _tabCtrl,
-                children: [
-                  _buildList(newB, '📬', 'No new bookings',
-                      'New customer bookings will appear here'),
-                  _buildList(ongoing, '⚙️', 'Nothing in progress',
-                      'Accepted bookings appear here'),
-                  _buildList(done, '✅', 'No completed bookings',
-                      'Finished jobs will appear here'),
-                ],
-              );
-            },
+                  return TabBarView(
+                    controller: _tabCtrl,
+                    children: [
+                      _buildList(newB, '📬', 'No new bookings',
+                          'New customer bookings will appear here'),
+                      _buildList(ongoing, '⚙️', 'Nothing in progress',
+                          'Accepted bookings appear here'),
+                      _buildList(done, '✅', 'No completed bookings',
+                          'Finished jobs will appear here'),
+                    ],
+                  );
+                },
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -204,30 +218,47 @@ class _ProviderBookingCardState extends State<_ProviderBookingCard> {
             ),
             if (_customerRating != null) ...[
               const SizedBox(height: 6),
-              Row(
-                children: [
-                  const Icon(Icons.person_outline_rounded,
-                      size: 13, color: AppTheme.textLight),
-                  const SizedBox(width: 4),
-                  Text(
-                    (booking.customerName?.trim().isNotEmpty ?? false)
-                        ? booking.customerName!.trim()
-                        : 'Customer',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppTheme.textSecondary),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(Icons.star_rounded,
-                      size: 13, color: AppTheme.accent),
-                  const SizedBox(width: 2),
-                  Text(
-                    '${_customerRating!.rating.toStringAsFixed(1)} (${_customerRating!.count})',
-                    style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary),
-                  ),
-                ],
+              GestureDetector(
+                onTap: () {
+                  final customerId = booking.userId;
+                  if (customerId == null || customerId.isEmpty) return;
+                  showCustomerRatingsSheet(
+                    context,
+                    customerId: customerId,
+                    customerName:
+                        (booking.customerName?.trim().isNotEmpty ?? false)
+                            ? booking.customerName!.trim()
+                            : 'Customer',
+                  );
+                },
+                child: Row(
+                  children: [
+                    const Icon(Icons.person_outline_rounded,
+                        size: 13, color: AppTheme.textLight),
+                    const SizedBox(width: 4),
+                    Text(
+                      (booking.customerName?.trim().isNotEmpty ?? false)
+                          ? booking.customerName!.trim()
+                          : 'Customer',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppTheme.textSecondary),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(Icons.star_rounded,
+                        size: 13, color: AppTheme.accent),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${_customerRating!.rating.toStringAsFixed(1)} (${_customerRating!.count})',
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.chevron_right_rounded,
+                        size: 15, color: AppTheme.textLight),
+                  ],
+                ),
               ),
             ],
             const SizedBox(height: 10),

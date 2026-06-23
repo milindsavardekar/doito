@@ -10,6 +10,7 @@ class ServiceCategory {
   final String color;
   final String description;
   final int serviceCount;
+  final bool isActive;
 
   const ServiceCategory({
     required this.id,
@@ -18,17 +19,36 @@ class ServiceCategory {
     required this.color,
     required this.description,
     required this.serviceCount,
+    this.isActive = true,
   });
 
   /// Professional Material icon for this category, used in place of the
   /// raw emoji string for a consistent, polished look across the app.
   IconData get iconData => categoryIconFor(name);
 
-  /// Single, consistent brand color for every category icon. Previously
-  /// each category had its own hex color (blue, green, orange, maroon...)
-  /// which made the icon grid look mismatched. All category icons now
-  /// share one color so the app looks consistent everywhere.
+  /// Single, consistent brand color for every category icon.
   Color get iconColor => categoryColorFor(name);
+
+  factory ServiceCategory.fromFirestore(Map<String, dynamic> data, String id) {
+    return ServiceCategory(
+      id: id,
+      name: data['name'] ?? '',
+      icon: data['icon'] ?? '',
+      color: data['color'] ?? '#0A84FF',
+      description: data['description'] ?? '',
+      serviceCount: (data['serviceCount'] ?? 0) as int,
+      isActive: data['isActive'] ?? true,
+    );
+  }
+
+  Map<String, dynamic> toFirestore() => {
+    'name': name,
+    'icon': icon,
+    'color': color,
+    'description': description,
+    'serviceCount': serviceCount,
+    'isActive': isActive,
+  };
 }
 
 /// Consistent brand color used for every category icon across the app.
@@ -213,6 +233,44 @@ class Booking {
       };
 }
 
+// ── Customer Rating (provider rates customer; mirror of Review) ───────────────
+class CustomerRating {
+  final String id;
+  final String bookingId;
+  final String customerId;
+  final String providerId;
+  final String providerName;
+  final double rating; // 1.0–5.0
+  final String comment;
+  final DateTime? createdAt;
+
+  const CustomerRating({
+    required this.id,
+    required this.bookingId,
+    required this.customerId,
+    required this.providerId,
+    required this.providerName,
+    required this.rating,
+    this.comment = '',
+    this.createdAt,
+  });
+
+  factory CustomerRating.fromFirestore(Map<String, dynamic> data, String id) {
+    return CustomerRating(
+      id: id,
+      bookingId: data['bookingId'] ?? '',
+      customerId: data['customerId'] ?? '',
+      providerId: data['providerId'] ?? '',
+      providerName: data['providerName'] ?? 'Provider',
+      rating: (data['rating'] ?? 0.0).toDouble(),
+      comment: data['comment'] ?? '',
+      createdAt: data['createdAt'] != null
+          ? (data['createdAt'] as Timestamp).toDate()
+          : null,
+    );
+  }
+}
+
 // ── Review ────────────────────────────────────────────────────────────────────
 class Review {
   final String id;
@@ -275,6 +333,10 @@ class AppUser {
   final List<String> addresses;
   final double rating;
   final int reviewCount;
+  // Set by the admin panel. When true, the app must refuse to let this
+  // person past login (see resolveUserForLogin call sites) — blocking
+  // someone is meaningless if the app never actually checks this flag.
+  final bool isBlocked;
 
   const AppUser({
     required this.uid,
@@ -285,6 +347,7 @@ class AppUser {
     required this.addresses,
     this.rating = 0.0,
     this.reviewCount = 0,
+    this.isBlocked = false,
   });
 
   bool get isServiceProvider => role == 'service_provider';
@@ -299,6 +362,7 @@ class AppUser {
       addresses: List<String>.from(data['addresses'] ?? []),
       rating: (data['rating'] ?? 0.0).toDouble(),
       reviewCount: data['totalReviews'] ?? data['reviewCount'] ?? 0,
+      isBlocked: data['isBlocked'] ?? false,
     );
   }
 
@@ -308,6 +372,7 @@ class AppUser {
         'phone': phone,
         'role': role,
         'addresses': addresses,
+        'isBlocked': isBlocked,
       };
 }
 

@@ -24,8 +24,8 @@ class ManageListingsScreen extends StatelessWidget {
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
         backgroundColor: AppTheme.primary,
-        title: const Text('My Services',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        title: const Text('My Services'),
+        titleTextStyle: AppTheme.appBarTitleStyle(color: Colors.white),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           Padding(
@@ -277,9 +277,7 @@ class _ManageListingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final catData =
-        MockData.categories.where((c) => c.name == listing.category).toList();
-    final catIcon = catData.isNotEmpty ? catData.first.iconData : Icons.build_rounded;
+    final catIcon = categoryIconFor(listing.category);
     final catColor = AppTheme.primary;
 
     return Container(

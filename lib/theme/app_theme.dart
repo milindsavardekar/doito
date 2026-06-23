@@ -55,6 +55,28 @@ class AppTheme {
     end: Alignment.bottomRight,
   );
 
+  // ── Shared header style ─────────────────────────────────────────────────────
+  /// Use this for EVERY screen's AppBar `titleTextStyle` so headers stay
+  /// visually consistent (same font + size) across the whole app. Pass
+  /// [color] only when the AppBar sits on a colored/gradient background
+  /// (e.g. Colors.white) — otherwise it defaults to the normal dark text
+  /// color used on plain/transparent AppBars.
+  static TextStyle appBarTitleStyle({Color color = textPrimary}) {
+    return GoogleFonts.plusJakartaSans(
+        fontSize: 20, fontWeight: FontWeight.w700, color: color);
+  }
+
+  /// Same idea as [appBarTitleStyle] but for the bigger gradient "hero"
+  /// headers used on tab screens like Services/Nearby/Explore (these sit
+  /// above a subtitle + action chips, so they're a bit larger than a plain
+  /// AppBar title). Keeping all three on this one helper is what makes
+  /// those three pages feel like siblings instead of each having its own
+  /// random size (24 / 22 / 24 before this).
+  static TextStyle heroTitleStyle({Color color = Colors.white}) {
+    return GoogleFonts.plusJakartaSans(
+        fontSize: 22, fontWeight: FontWeight.w800, color: color);
+  }
+
   // ── ThemeData ──────────────────────────────────────────────────────────────
   static ThemeData get lightTheme {
     return ThemeData(
@@ -93,8 +115,7 @@ class AppTheme {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        titleTextStyle: GoogleFonts.plusJakartaSans(
-            fontSize: 20, fontWeight: FontWeight.w700, color: textPrimary),
+        titleTextStyle: appBarTitleStyle(),
         iconTheme: const IconThemeData(color: textPrimary),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(

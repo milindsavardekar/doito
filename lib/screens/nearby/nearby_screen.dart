@@ -116,8 +116,6 @@ class _NearbyScreenState extends State<NearbyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = ['All', ...MockData.categories.map((c) => c.name)];
-
     return Scaffold(
       backgroundColor: AppTheme.surface,
       body: Column(
@@ -136,11 +134,8 @@ class _NearbyScreenState extends State<NearbyScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Nearby Services',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800)),
+                            Text('Nearby Services',
+                                style: AppTheme.heroTitleStyle()),
                             GestureDetector(
                               onTap: _pickLocation,
                               child: Row(
@@ -230,7 +225,11 @@ class _NearbyScreenState extends State<NearbyScreen> {
             ),
           ),
           // Category chips
-          Container(
+          StreamBuilder<List<ServiceCategory>>(
+            stream: _firestore.getCategories(),
+            builder: (context, catSnap) {
+              final categories = ['All', ...(catSnap.data ?? []).map((c) => c.name)];
+              return Container(
             color: AppTheme.primary,
             child: Container(
               decoration: const BoxDecoration(
@@ -281,6 +280,8 @@ class _NearbyScreenState extends State<NearbyScreen> {
                 ),
               ),
             ),
+          );
+            },
           ),
           // Listings
           Expanded(
@@ -480,12 +481,15 @@ class _NearbyScreenState extends State<NearbyScreen> {
     String filter = '';
     final searchCtrl = TextEditingController();
 
+    // Kick off a fresh fetch in the background, same as home_screen.
+    LocationService.warmCache();
+
     final picked = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setModal) {
-        final filtered = kSangliLocations
+        final filtered = LocationService.cached
             .where((l) =>
                 l.toLowerCase().contains(filter.toLowerCase()))
             .toList();
@@ -548,7 +552,7 @@ class _NearbyScreenState extends State<NearbyScreen> {
                 ),
                 // Manual entry option
                 if (searchCtrl.text.trim().isNotEmpty &&
-                    !kSangliLocations.any((l) =>
+                    !LocationService.cached.any((l) =>
                         l.toLowerCase() ==
                         searchCtrl.text.trim().toLowerCase()))
                   Padding(
@@ -642,10 +646,7 @@ class _NearbyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final catData = MockData.categories
-        .where((c) => c.name == listing.category)
-        .toList();
-    final catIcon = catData.isNotEmpty ? catData.first.iconData : Icons.build_rounded;
+    final catIcon = categoryIconFor(listing.category);
     final catColor = AppTheme.primary;
 
     final userArea = userLocation

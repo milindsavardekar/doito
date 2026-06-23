@@ -71,14 +71,13 @@ class AuthService {
   /// device. Clearing the cache on every sign-out forces the next session
   /// to always read fresh from the server, avoiding this entirely.
   Future<void> signOut() async {
-    await _auth.signOut();
+    // Terminate Firestore first to close all active listeners,
+    // then sign out from Auth. clearPersistence is not needed here
+    // and causes errors when listeners are still attached.
     try {
-      await _db.clearPersistence();
-    } catch (_) {
-      // clearPersistence() throws if there's an active listener still
-      // attached (e.g. a screen with a StreamBuilder hadn't disposed yet).
-      // Safe to ignore — the cache will simply refresh on next listen.
-    }
+      await FirebaseFirestore.instance.terminate();
+    } catch (_) {}
+    await _auth.signOut();
   }
 
   Future<AppUser?> getUserData(String uid) async {
@@ -272,6 +271,61 @@ class AuthService {
 class FirestoreService {
   final _db = FirebaseFirestore.instance;
 
+  // ── Categories ──
+  /// Live stream of all active categories, ordered by name.
+  /// Admin panel controls isActive — inactive ones are hidden from the app.
+  Stream<List<ServiceCategory>> getCategories() {
+    return _db
+        .collection('categories')
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snap) {
+      final list = snap.docs
+          .map((d) => ServiceCategory.fromFirestore(d.data(), d.id))
+          .toList();
+      list.sort((a, b) => a.name.compareTo(b.name));
+      return list;
+    });
+  }
+
+  // ── Locations ──
+  /// Live stream of selectable localities (e.g. "Sangli - Vishrambag"),
+  /// managed from the admin panel's Locations page. Every location
+  /// picker in the app should read through this (or [getLocationsOnce])
+  /// instead of the old hardcoded `kSangliLocations` list, so adding or
+  /// removing an area from the admin panel takes effect everywhere
+  /// without an app update.
+  Stream<List<String>> getLocations() {
+    return _db
+        .collection('locations')
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snap) {
+      final list = snap.docs
+          .map((d) => (d.data()['name'] ?? '') as String)
+          .where((n) => n.isNotEmpty)
+          .toList();
+      list.sort();
+      return list;
+    });
+  }
+
+  /// One-time fetch (not a live stream) — used where a picker needs the
+  /// list once synchronously, like a bottom-sheet location chooser,
+  /// rather than staying subscribed for the lifetime of a modal.
+  Future<List<String>> getLocationsOnce() async {
+    final snap = await _db
+        .collection('locations')
+        .where('isActive', isEqualTo: true)
+        .get();
+    final list = snap.docs
+        .map((d) => (d.data()['name'] ?? '') as String)
+        .where((n) => n.isNotEmpty)
+        .toList();
+    list.sort();
+    return list;
+  }
+
   // ── Providers ──
   Stream<List<ServiceProvider>> getServiceProviders({String? category}) {
     var q = _db.collection('users').where('role', isEqualTo: 'service_provider');
@@ -445,7 +499,7 @@ class FirestoreService {
       txn.set(reviewRef, {
         'bookingId': bookingId,
         'providerId': providerId,
-        if (listingId != null) 'listingId': listingId,
+        'listingId': ?listingId,
         'userId': userId,
         'userName': userName,
         'rating': rating,
@@ -532,6 +586,27 @@ class FirestoreService {
         .map((snap) {
       final list = snap.docs
           .map((d) => Review.fromFirestore(d.data(), d.id))
+          .toList();
+      list.sort((a, b) {
+        if (a.createdAt == null) return 1;
+        if (b.createdAt == null) return -1;
+        return b.createdAt!.compareTo(a.createdAt!);
+      });
+      return list;
+    });
+  }
+
+  /// All ratings/comments left by providers about a specific customer,
+  /// newest first. Lets a provider tap a customer's rating badge and see
+  /// what other providers said about them (mirrors [getProviderReviews]).
+  Stream<List<CustomerRating>> getCustomerRatings(String customerId) {
+    return _db
+        .collection('customer_ratings')
+        .where('customerId', isEqualTo: customerId)
+        .snapshots()
+        .map((snap) {
+      final list = snap.docs
+          .map((d) => CustomerRating.fromFirestore(d.data(), d.id))
           .toList();
       list.sort((a, b) {
         if (a.createdAt == null) return 1;

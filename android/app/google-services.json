@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "720451154201",
-    "project_id": "dailyserv-d65aa",
-    "storage_bucket": "dailyserv-d65aa.firebasestorage.app"
+    "project_number": "775345098426",
+    "project_id": "doito-40aa5",
+    "storage_bucket": "doito-40aa5.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:720451154201:android:e28f8f65705729e5ffd588",
+        "mobilesdk_app_id": "1:775345098426:android:e99f62cba60d772867fc83",
         "android_client_info": {
-          "package_name": "com.example.dailyserv"
+          "package_name": "com.example.doito"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "775345098426-9q1d4d68djfa2a785o5rtvvdo7t5atia.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.doito",
+            "certificate_hash": "0dc768db12527df16edeb7d6b4b0a5c5492589a8"
+          }
+        },
+        {
+          "client_id": "775345098426-037c0massl7ceakg7evd9s07s9jpnd2g.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDpm5VyWRk_SNyBH0ECOMPOzfJVIZ55bOo"
+          "current_key": "AIzaSyBbxnJZ6ozwr7umCHiSxzk0M2mEvuwmRJQ"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "775345098426-037c0massl7ceakg7evd9s07s9jpnd2g.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

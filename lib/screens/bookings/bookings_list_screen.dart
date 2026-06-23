@@ -31,89 +31,103 @@ class _BookingsListScreenState extends State<BookingsListScreen>
     super.dispose();
   }
 
+  static const double _tabBarHeight = 48;
+
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    final headerHeight = statusBarHeight + kToolbarHeight + _tabBarHeight;
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: AppTheme.primary,
-        titleTextStyle: const TextStyle(
-            color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        titleTextStyle: AppTheme.appBarTitleStyle(color: Colors.white),
         title: const Text('My Bookings'),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Container(
-            color: AppTheme.primary,
-            child: TabBar(
-              controller: _tabCtrl,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white54,
-              indicatorColor: const Color(0xFF4DD9EC),
-              indicatorWeight: 3,
-              labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w700, fontSize: 14),
-              tabs: const [
-                Tab(text: 'Booked'),
-                Tab(text: 'Completed'),
-                Tab(text: 'Cancelled'),
-              ],
-            ),
+          preferredSize: const Size.fromHeight(_tabBarHeight),
+          child: TabBar(
+            controller: _tabCtrl,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white54,
+            indicatorColor: const Color(0xFF4DD9EC),
+            indicatorWeight: 3,
+            labelStyle: const TextStyle(
+                fontWeight: FontWeight.w700, fontSize: 14),
+            tabs: const [
+              Tab(text: 'Booked'),
+              Tab(text: 'Completed'),
+              Tab(text: 'Cancelled'),
+            ],
           ),
         ),
       ),
-      body: uid == null
-          ? const Center(child: Text('Please sign in to view bookings'))
-          : Container(
-              color: AppTheme.primary,
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                ),
-                child: StreamBuilder<List<Booking>>(
-                  stream: _firestore.getUserBookings(uid),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return const Center(
-                          child: Text('Failed to load bookings'));
-                    }
-                    if (!snapshot.hasData) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                            color: AppTheme.primary),
-                      );
-                    }
+      body: Stack(
+        children: [
+          // One continuous gradient behind the status bar + title + tab
+          // bar, instead of two separate gradient boxes stacked on top of
+          // each other (which produced a hard, banded seam where the first
+          // gradient's dark end met the second gradient's bright start).
+          Container(
+            height: headerHeight,
+            decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+          ),
+          Padding(
+            padding: EdgeInsets.only(top: headerHeight),
+            child: uid == null
+                ? const Center(child: Text('Please sign in to view bookings'))
+                : Container(
+                    decoration: const BoxDecoration(
+                      color: AppTheme.surface,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                    ),
+                    child: StreamBuilder<List<Booking>>(
+                      stream: _firestore.getUserBookings(uid),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return const Center(
+                              child: Text('Failed to load bookings'));
+                        }
+                        if (!snapshot.hasData) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                                color: AppTheme.primary),
+                          );
+                        }
 
-                    final all = snapshot.data!;
-                    final upcoming = all
-                        .where((b) =>
-                            b.status == 'confirmed' ||
-                            b.status == 'pending' ||
-                            b.status == 'in_progress')
-                        .toList();
-                    final completed =
-                        all.where((b) => b.status == 'completed').toList();
-                    final cancelled =
-                        all.where((b) => b.status == 'cancelled').toList();
+                        final all = snapshot.data!;
+                        final upcoming = all
+                            .where((b) =>
+                                b.status == 'confirmed' ||
+                                b.status == 'pending' ||
+                                b.status == 'in_progress')
+                            .toList();
+                        final completed =
+                            all.where((b) => b.status == 'completed').toList();
+                        final cancelled =
+                            all.where((b) => b.status == 'cancelled').toList();
 
-                    return TabBarView(
-                      controller: _tabCtrl,
-                      children: [
-                        _buildList(upcoming, 'No booked services',
-                            '📅', 'Your booked services will appear here'),
-                        _buildList(completed, 'No completed bookings',
-                            '✅', 'Completed services will appear here'),
-                        _buildList(cancelled, 'No cancelled bookings',
-                            '🚫', 'Cancelled bookings will appear here'),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ),
+                        return TabBarView(
+                          controller: _tabCtrl,
+                          children: [
+                            _buildList(upcoming, 'No booked services',
+                                '📅', 'Your booked services will appear here'),
+                            _buildList(completed, 'No completed bookings',
+                                '✅', 'Completed services will appear here'),
+                            _buildList(cancelled, 'No cancelled bookings',
+                                '🚫', 'Cancelled bookings will appear here'),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 

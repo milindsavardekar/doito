@@ -459,9 +459,7 @@ class _ListingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final catData =
-        MockData.categories.where((c) => c.name == listing.category).toList();
-    final catIcon = catData.isNotEmpty ? catData.first.iconData : Icons.build_rounded;
+    final catIcon = categoryIconFor(listing.category);
     final catColor = AppTheme.primary;
 
     return GestureDetector(

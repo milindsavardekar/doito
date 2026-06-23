@@ -164,6 +164,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
         // Always use what the user selected — don't inherit old role
         final effectiveRole = _selectedRole;
 
+        if (existing?.isBlocked == true) {
+          await _auth.signOut();
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Your account has been blocked. Contact support for help.'),
+            ),
+          );
+          setState(() => _loading = false);
+          return;
+        }
+
         if (existing == null) {
           await _auth.saveUserDataWithOTP(
             uid: user.uid,

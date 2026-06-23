@@ -1,6 +1,68 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
+// ── Page Header ─────────────────────────────────────────────────────────────
+/// The ONE header style every screen's page title should use — gradient
+/// background, fixed font/size/weight, optional subtitle and trailing
+/// action. Using this everywhere (instead of each screen rolling its own
+/// Container + Text) is what keeps every page's header looking like part
+/// of the same app instead of each page feeling hand-built.
+///
+/// Use this for plain "page title" headers. Dashboard-style headers (Home,
+/// Provider Home greeting bars) and hero/profile headers (avatar + name,
+/// cover photos) are intentionally a different, richer layout and aren't
+/// meant to be replaced by this — but their title text should still use
+/// [AppTheme.appBarTitleStyle] so the font itself stays consistent.
+class PageHeader extends StatelessWidget implements PreferredSizeWidget {
+  final String title;
+  final String? subtitle;
+  final bool showBackButton;
+  final List<Widget>? actions;
+  final Widget? leading;
+
+  const PageHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.showBackButton = false,
+    this.actions,
+    this.leading,
+  });
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      backgroundColor: AppTheme.primary,
+      elevation: 0,
+      automaticallyImplyLeading: showBackButton,
+      leading: leading ??
+          (showBackButton
+              ? const BackButton(color: Colors.white)
+              : null),
+      titleTextStyle: AppTheme.appBarTitleStyle(color: Colors.white),
+      title: subtitle == null
+          ? Text(title)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(title, style: AppTheme.appBarTitleStyle(color: Colors.white)),
+                Text(subtitle!,
+                    style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500)),
+              ],
+            ),
+      iconTheme: const IconThemeData(color: Colors.white),
+      actions: actions,
+    );
+  }
+}
+
 // ── Gradient Button ────────────────────────────────────────────────────────────
 class GradientButton extends StatelessWidget {
   final String label;

@@ -80,7 +80,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
         title: const Text('Personal Information'),
-        backgroundColor: AppTheme.surface,
+        backgroundColor: AppTheme.primary,
+        titleTextStyle: AppTheme.appBarTitleStyle(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

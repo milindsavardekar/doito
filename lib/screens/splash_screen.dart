@@ -51,9 +51,14 @@ class _SplashScreenState extends State<SplashScreen>
             uid: user.uid,
             phone: user.phoneNumber ?? '',
           );
-          dest = userData?.isServiceProvider == true
-              ? const ProviderMainScreen()
-              : const MainScreen();
+          if (userData?.isBlocked == true) {
+            await AuthService().signOut();
+            dest = const LoginScreen();
+          } else {
+            dest = userData?.isServiceProvider == true
+                ? const ProviderMainScreen()
+                : const MainScreen();
+          }
         } catch (_) {
           dest = const LoginScreen();
         }

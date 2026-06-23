@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/firebase_services.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common_widgets.dart';
+import '../auth/login_screen.dart';
 import '../services/manage_listings_screen.dart';
 import '../services/add_edit_listing_screen.dart';
 
@@ -28,7 +29,17 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     final user = await AuthService().getUserData(uid);
-    if (mounted) setState(() => _user = user);
+    if (!mounted) return;
+    if (user?.isBlocked == true) {
+      await AuthService().signOut();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+      return;
+    }
+    setState(() => _user = user);
   }
 
   String _greeting() {
@@ -532,10 +543,7 @@ class _ProviderServiceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final catData = MockData.categories
-        .where((c) => c.name == listing.category)
-        .toList();
-    final catIcon = catData.isNotEmpty ? catData.first.iconData : Icons.build_rounded;
+    final catIcon = categoryIconFor(listing.category);
     final catColor = AppTheme.primary;
 
     return Container(

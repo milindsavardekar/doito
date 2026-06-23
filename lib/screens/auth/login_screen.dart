@@ -151,6 +151,20 @@ class _LoginScreenState extends State<LoginScreen>
           phone: _phoneCtrl.text.trim(),
         );
         if (!mounted) return;
+
+        if (userData?.isBlocked == true) {
+          await _auth.signOut();
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Your account has been blocked. Contact support for help.'),
+            ),
+          );
+          setState(() => _loading = false);
+          return;
+        }
+
         final isProvider = userData?.role == 'service_provider';
         
         if (isProvider) {

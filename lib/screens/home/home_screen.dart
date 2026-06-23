@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/firebase_services.dart';
 import '../../services/location_service.dart';
 import '../../theme/app_theme.dart';
+import '../auth/login_screen.dart';
 import '../services/services_browse_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -41,7 +42,17 @@ class _HomeScreenState extends State<HomeScreen> {
       uid: fbUser.uid,
       phone: fbUser.phoneNumber ?? '',
     );
-    if (mounted && user != null) {
+    if (!mounted) return;
+    if (user?.isBlocked == true) {
+      await AuthService().signOut();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+      return;
+    }
+    if (user != null) {
       setState(() => _userName = user.name.split(' ').first);
     }
   }
@@ -59,13 +70,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final TextEditingController manualCtrl = TextEditingController();
     String searchFilter = '';
 
+    // Kick off a fresh fetch so the sheet shows up-to-date admin-panel
+    // changes even if warmCache() at app startup happened a while ago.
+    // Doesn't block opening the sheet — it just updates LocationService
+    // .cached in the background; the sheet below reads that list fresh
+    // on every rebuild via setModal().
+    LocationService.warmCache();
+
     final newLocation = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         return StatefulBuilder(builder: (ctx, setModal) {
-          final filtered = kSangliLocations
+          final filtered = LocationService.cached
               .where((loc) =>
                   loc.toLowerCase().contains(searchFilter.toLowerCase()))
               .toList();
@@ -136,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   // Manual entry button — shown when typed text doesn't match any
                   if (manualCtrl.text.trim().isNotEmpty &&
-                      !kSangliLocations.any((l) =>
+                      !LocationService.cached.any((l) =>
                           l.toLowerCase() ==
                           manualCtrl.text.trim().toLowerCase()))
                     Padding(
@@ -555,36 +573,48 @@ Widget _buildPromoCard() {
 
   // ── Categories Grid - 3 Cards per Row ──────────────────────────────────
   Widget _buildCategoriesGrid() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 14,
-          childAspectRatio: 0.95,
-        ),
-        itemCount: MockData.categories.length,
-        itemBuilder: (_, i) {
-          final cat = MockData.categories[i];
-          final color = AppTheme.primary;
-          return _CategoryCard(
-            category: cat,
-            color: color,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ServicesBrowseScreen(
-                  initialCategory: cat.name,
-                  initialLocation: _selectedLocation,
-                ),
-              ),
-            ),
+    final firestore = FirestoreService();
+    return StreamBuilder<List<ServiceCategory>>(
+      stream: firestore.getCategories(),
+      builder: (context, snapshot) {
+        final cats = snapshot.data ?? [];
+        if (cats.isEmpty && !snapshot.hasData) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
           );
-        },
-      ),
+        }
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 14,
+              childAspectRatio: 0.95,
+            ),
+            itemCount: cats.length,
+            itemBuilder: (_, i) {
+              final cat = cats[i];
+              return _CategoryCard(
+                category: cat,
+                color: AppTheme.primary,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ServicesBrowseScreen(
+                      initialCategory: cat.name,
+                      initialLocation: _selectedLocation,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

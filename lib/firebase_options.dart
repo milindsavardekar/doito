@@ -1,3 +1,6 @@
+// File generated based on doito Firebase project (doito-40aa5)
+// google-services.json package: com.example.doito
+
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
@@ -9,27 +12,30 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError('iOS not configured.');
+        throw UnsupportedError(
+          'iOS is not configured. Add GoogleService-Info.plist and update this file.',
+        );
       default:
-        throw UnsupportedError('Unsupported platform.');
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not supported for this platform.',
+        );
     }
   }
 
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDpm5VyWRk_SNyBH0ECOMPOzfJVIZ55bOo',
-    appId: '1:720451154201:android:e28f8f65705729e5ffd588',
-    messagingSenderId: '720451154201',
-    projectId: 'dailyserv-d65aa',
-    storageBucket: 'dailyserv-d65aa.firebasestorage.app',
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyBbxnJZ6ozwr7umCHiSxzk0M2mEvuwmRJQ',
+    appId: '1:775345098426:web:doito',
+    messagingSenderId: '775345098426',
+    projectId: 'doito-40aa5',
+    authDomain: 'doito-40aa5.firebaseapp.com',
+    storageBucket: 'doito-40aa5.firebasestorage.app',
   );
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCH1SSADXDXaSz2VgVaSPvRLugD_a47EKg',
-    appId: '1:720451154201:web:6fad27c139bbc349ffd588',
-    messagingSenderId: '720451154201',
-    projectId: 'dailyserv-d65aa',
-    authDomain: 'dailyserv-d65aa.firebaseapp.com',
-    storageBucket: 'dailyserv-d65aa.firebasestorage.app',
-    measurementId: 'G-1X558Z39SE',
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyBbxnJZ6ozwr7umCHiSxzk0M2mEvuwmRJQ',
+    appId: '1:775345098426:android:e99f62cba60d772867fc83',
+    messagingSenderId: '775345098426',
+    projectId: 'doito-40aa5',
+    storageBucket: 'doito-40aa5.firebasestorage.app',
   );
 }

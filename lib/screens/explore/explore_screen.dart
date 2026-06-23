@@ -18,8 +18,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final _searchCtrl = TextEditingController();
   final _firestore = FirestoreService();
 
-  final _categories = ['All', ...MockData.categories.map((c) => c.name)];
-
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -51,15 +49,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Row(
                 children: [
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Explore',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800)),
-                      Text('Find services near you',
+                          style: AppTheme.heroTitleStyle()),
+                      const Text('Find services near you',
                           style: TextStyle(
                               color: Colors.white70, fontSize: 13)),
                     ],
@@ -138,61 +133,67 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Widget _buildCategoryChips() {
-    return Container(
-      color: AppTheme.primary,
-      child: Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SizedBox(
-          height: 52,
-          child: ListView.builder(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            scrollDirection: Axis.horizontal,
-            itemCount: _categories.length,
-            itemBuilder: (_, i) {
-              final cat = _categories[i];
-              final sel = _selectedCategory == cat;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedCategory = cat),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 6),
-                  decoration: BoxDecoration(
-                    gradient: sel ? AppTheme.accentGradient : null,
-                    color: sel ? null : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: sel
-                            ? Colors.transparent
-                            : AppTheme.divider),
-                    boxShadow: sel
-                        ? [
-                            BoxShadow(
-                                color: AppTheme.primary.withValues(alpha: 0.3),
-                                blurRadius: 8)
-                          ]
-                        : [],
-                  ),
-                  child: Text(cat,
-                      style: TextStyle(
-                          color: sel
-                              ? Colors.white
-                              : AppTheme.textSecondary,
-                          fontSize: 13,
-                          fontWeight: sel
-                              ? FontWeight.w700
-                              : FontWeight.w500)),
-                ),
-              );
-            },
+    return StreamBuilder<List<ServiceCategory>>(
+      stream: _firestore.getCategories(),
+      builder: (context, snapshot) {
+        final cats = ['All', ...(snapshot.data ?? []).map((c) => c.name)];
+        return Container(
+          color: AppTheme.primary,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SizedBox(
+              height: 52,
+              child: ListView.builder(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                scrollDirection: Axis.horizontal,
+                itemCount: cats.length,
+                itemBuilder: (_, i) {
+                  final cat = cats[i];
+                  final sel = _selectedCategory == cat;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedCategory = cat),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        gradient: sel ? AppTheme.accentGradient : null,
+                        color: sel ? null : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: sel
+                                ? Colors.transparent
+                                : AppTheme.divider),
+                        boxShadow: sel
+                            ? [
+                                BoxShadow(
+                                    color: AppTheme.primary.withValues(alpha: 0.3),
+                                    blurRadius: 8)
+                              ]
+                            : [],
+                      ),
+                      child: Text(cat,
+                          style: TextStyle(
+                              color: sel
+                                  ? Colors.white
+                                  : AppTheme.textSecondary,
+                              fontSize: 13,
+                              fontWeight: sel
+                                  ? FontWeight.w700
+                                  : FontWeight.w500)),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -354,9 +355,7 @@ class _ExploreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final catData =
-        MockData.categories.where((c) => c.name == listing.category).toList();
-    final catIcon = catData.isNotEmpty ? catData.first.iconData : Icons.build_rounded;
+    final catIcon = categoryIconFor(listing.category);
     final catColor = AppTheme.primary;
 
     return GestureDetector(

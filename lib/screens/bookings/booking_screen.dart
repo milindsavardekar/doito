@@ -115,8 +115,7 @@ class _BookingScreenState extends State<BookingScreen> {
         title: Text(_booked ? 'Booking Confirmed!' : 'Book Service'),
         backgroundColor: AppTheme.primary,
         iconTheme: const IconThemeData(color: Colors.white),
-        titleTextStyle: const TextStyle(
-            color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+        titleTextStyle: AppTheme.appBarTitleStyle(color: Colors.white),
       ),
       body: _booked ? _buildSuccess() : _buildForm(),
     );

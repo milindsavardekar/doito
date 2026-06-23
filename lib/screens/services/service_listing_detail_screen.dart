@@ -113,10 +113,7 @@ class _ServiceListingDetailScreenState
   @override
   Widget build(BuildContext context) {
     final l = widget.listing;
-    final catData = MockData.categories
-        .where((c) => c.name == l.category)
-        .toList();
-    final catIcon  = catData.isNotEmpty ? catData.first.iconData : Icons.build_rounded;
+    final catIcon  = categoryIconFor(l.category);
     final catColor = AppTheme.primary;
 
     return Scaffold(

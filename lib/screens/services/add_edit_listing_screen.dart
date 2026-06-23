@@ -24,7 +24,7 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
 
   final _phoneCtrl    = TextEditingController();
 
-  String _selectedCategory = MockData.categories.first.name;
+  String? _selectedCategory;
   String _selectedPriceUnit = 'per visit';
   int    _durationMinutes   = 60;
   bool   _isActive          = true;
@@ -100,12 +100,14 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
     String filter = '';
     final TextEditingController searchCtrl = TextEditingController();
 
+    LocationService.warmCache();
+
     final picked = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setModal) {
-        final filtered = kSangliLocations
+        final filtered = LocationService.cached
             .where((l) => l.toLowerCase().contains(filter.toLowerCase()))
             .toList();
         return DraggableScrollableSheet(
@@ -201,6 +203,14 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
     setState(() => _submitted = true);
     if (!_formKey.currentState!.validate()) return;
     if (_locationCtrl.text.trim().isEmpty) return;
+    if (_selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please select a category'),
+        backgroundColor: AppTheme.error,
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
     setState(() => _saving = true);
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -213,7 +223,7 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
         final updated = widget.listing!.copyWith(
           title:            _titleCtrl.text.trim(),
           description:      _descCtrl.text.trim(),
-          category:         _selectedCategory,
+          category:         _selectedCategory!,
           price:            double.parse(_priceCtrl.text.trim()),
           priceUnit:        _selectedPriceUnit,
           durationMinutes:  _durationMinutes,
@@ -232,12 +242,13 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
           providerLocation: _locationCtrl.text.trim(),
           title:            _titleCtrl.text.trim(),
           description:      _descCtrl.text.trim(),
-          category:         _selectedCategory,
+          category:         _selectedCategory!,
           price:            double.parse(_priceCtrl.text.trim()),
           priceUnit:        _selectedPriceUnit,
           durationMinutes:  _durationMinutes,
           isActive:         _isActive,
           whatsIncluded:    _whatsIncluded,
+          createdAt:        DateTime.now(),
         );
         await _firestore.addServiceListing(listing);
       }
@@ -268,8 +279,8 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
         backgroundColor: AppTheme.primary,
-        title: Text(_isEditing ? 'Edit Service' : 'Add New Service',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        title: Text(_isEditing ? 'Edit Service' : 'Add New Service'),
+        titleTextStyle: AppTheme.appBarTitleStyle(color: Colors.white),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Form(
@@ -324,42 +335,73 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
                     _FormSection(
                       title: 'Category',
                       required: true,
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _selectedCategory,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(color: AppTheme.divider)),
-                          enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(color: AppTheme.divider)),
-                          focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(
-                                  color: AppTheme.primary, width: 2)),
-                          prefixIcon: const Icon(Icons.category_outlined,
-                              color: AppTheme.textLight, size: 20),
-                        ),
-                        items: MockData.categories
-                            .map((c) => DropdownMenuItem(
-                                  value: c.name,
-                                  child: Row(children: [
-                                    Icon(c.iconData,
-                                        size: 20,
-                                        color: AppTheme.primary),
-                                    const SizedBox(width: 10),
-                                    Text(c.name,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w500)),
-                                  ]),
-                                ))
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => _selectedCategory = v!),
+                      child: StreamBuilder<List<ServiceCategory>>(
+                        stream: _firestore.getCategories(),
+                        builder: (context, snapshot) {
+                          final liveCats = snapshot.data ?? [];
+                          // When editing, ensure the current category is always
+                          // included even if admin deactivated it
+                          final allCats = _isEditing && _selectedCategory != null &&
+                              !liveCats.any((c) => c.name == _selectedCategory)
+                              ? [
+                                  ServiceCategory(
+                                    id: '',
+                                    name: _selectedCategory!,
+                                    icon: '',
+                                    color: '',
+                                    description: '',
+                                    serviceCount: 0,
+                                  ),
+                                  ...liveCats,
+                                ]
+                              : liveCats;
+                          // Auto-select first category when adding new listing
+                          if (_selectedCategory == null && allCats.isNotEmpty) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted && _selectedCategory == null) {
+                                setState(() => _selectedCategory = allCats.first.name);
+                              }
+                            });
+                          }
+                          return DropdownButtonFormField<String>(
+                            initialValue: _selectedCategory,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: const BorderSide(color: AppTheme.divider)),
+                              enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: const BorderSide(color: AppTheme.divider)),
+                              focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: const BorderSide(
+                                      color: AppTheme.primary, width: 2)),
+                              prefixIcon: const Icon(Icons.category_outlined,
+                                  color: AppTheme.textLight, size: 20),
+                            ),
+                            hint: const Text('Select a category'),
+                            items: allCats
+                                .map((c) => DropdownMenuItem(
+                                      value: c.name,
+                                      child: Row(children: [
+                                        Icon(categoryIconFor(c.name),
+                                            size: 20,
+                                            color: AppTheme.primary),
+                                        const SizedBox(width: 10),
+                                        Text(c.name,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w500)),
+                                      ]),
+                                    ))
+                                .toList(),
+                            onChanged: (v) =>
+                                setState(() => _selectedCategory = v),
+                          );
+                        },
                       ),
                     ),
 
@@ -762,11 +804,9 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
   }
 
   Widget _buildPreviewCard() {
-    final catData = MockData.categories
-        .where((c) => c.name == _selectedCategory)
-        .toList();
-    final catIcon  = catData.isNotEmpty ? catData.first.iconData : Icons.build_rounded;
+    final catIcon  = categoryIconFor(_selectedCategory ?? '');
     final catColor = AppTheme.primary;
+    final catLabel = _selectedCategory ?? 'Select category';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -810,7 +850,7 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 3),
-                    Text(_selectedCategory,
+                    Text(catLabel,
                         style: TextStyle(
                             fontSize: 11,
                             color: catColor,
